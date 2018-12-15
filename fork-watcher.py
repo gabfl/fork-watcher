@@ -18,29 +18,58 @@ def set_token():
 def get_subscriptions():
     """ Get my current subscriptions"""
 
-    subscriptions = requests.get('https://api.github.com/user/subscriptions',
-                                 auth=('token', token))
-    subscriptions = subscriptions.json()
+    subscriptions_list = []
+    page = 1
 
-    if subscriptions:
-        subscriptions = [subscription['full_name']
-                         for subscription in subscriptions]
+    while True:
+        subscriptions = requests.get('https://api.github.com/user/subscriptions?page=%d' % page,
+                                     auth=('token', token))
+        subscriptions = subscriptions.json()
 
-        print('You are currently watching %d repos' % len(subscriptions))
+        # Stop looping when we went thru all pages
+        if not subscriptions:
+            break
 
-        return subscriptions
+        # Add subscriptions
+        subscriptions_list = subscriptions_list + [subscription['full_name']
+                                                   for subscription in subscriptions]
 
-    return []
+        # Increment page number
+        page += 1
+
+    print('You are currently watching %d repos' % len(subscriptions_list))
+
+    return subscriptions_list
 
 
 def get_forks(forks_url):
     """ Fetch and return forks """
 
-    # Retrieve the list of forks
-    forks = requests.get(forks_url,
-                         auth=('token', token))
+    forks_list = []
+    page = 1
 
-    return forks.json()
+    while True:
+        # Retrieve the list of forks
+        forks = requests.get(forks_url + '?page=%d' % page,
+                             auth=('token', token))
+        forks = forks.json()
+
+        # Stop looping when we went thru all pages
+        if not forks:
+            break
+
+        # Add forks
+        forks_list = forks_list + [
+            {
+                'full_name': fork['full_name'],
+                'subscription_url': fork['subscription_url']
+            } for fork in forks
+        ]
+
+        # Increment page number
+        page += 1
+
+    return forks_list
 
 
 def subscribe(subscription_url):
@@ -77,9 +106,6 @@ def get_repos():
 
 def search_and_subscribe():
     """ Loop thru repositories, fetch forks and subscribe """
-
-    repos = requests.get('https://api.github.com/user/repos',
-                         auth=('token', token))
 
     for repo in get_repos():
         print(' * repo: %s' % (repo['name']))
