@@ -93,13 +93,13 @@ def get_repos():
 
     while True:
         repos = requests.get('https://api.github.com/user/repos?page=%d' % page,
-                            auth=('token', token))
+                             auth=('token', token))
         repos = repos.json()
 
         # Stop looping when we went thru all pages
         if not repos:
             break
-        
+
         for repo in repos:
             if repo['fork'] is False:
                 yield repo
