@@ -45,7 +45,6 @@ def get_subscriptions():
 def get_forks(forks_url):
     """ Fetch and return forks """
 
-    forks_list = []
     page = 1
 
     while True:
@@ -58,18 +57,14 @@ def get_forks(forks_url):
         if not forks:
             break
 
-        # Add forks
-        forks_list = forks_list + [
-            {
+        for fork in forks:
+            yield {
                 'full_name': fork['full_name'],
                 'subscription_url': fork['subscription_url']
-            } for fork in forks
-        ]
+            }
 
         # Increment page number
         page += 1
-
-    return forks_list
 
 
 def subscribe(subscription_url):
@@ -94,14 +89,23 @@ def subscribe(subscription_url):
 def get_repos():
     """ Get the list of repositories excluding forks """
 
-    repos = requests.get('https://api.github.com/user/repos',
-                         auth=('token', token))
-    repos = repos.json()
+    page = 1
 
-    if repos:
-        return [repo for repo in repos if repo['fork'] is False]
+    while True:
+        repos = requests.get('https://api.github.com/user/repos?page=%d' % page,
+                            auth=('token', token))
+        repos = repos.json()
 
-    return []
+        # Stop looping when we went thru all pages
+        if not repos:
+            break
+        
+        for repo in repos:
+            if repo['fork'] is False:
+                yield repo
+
+        # Increment page number
+        page += 1
 
 
 def search_and_subscribe():
