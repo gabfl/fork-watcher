@@ -94,14 +94,24 @@ def subscribe(subscription_url):
 def get_repos():
     """ Get the list of repositories excluding forks """
 
-    repos = requests.get('https://api.github.com/user/repos',
-                         auth=('token', token))
-    repos = repos.json()
+    repos_list = []
+    page = 1
 
-    if repos:
-        return [repo for repo in repos if repo['fork'] is False]
+    while True:
+        repos = requests.get('https://api.github.com/user/repos?page=%d' % page,
+                            auth=('token', token))
+        repos = repos.json()
 
-    return []
+        # Stop looping when we went thru all pages
+        if not repos:
+            break
+        
+        repos_list = repos_list + [repo for repo in repos if repo['fork'] is False]
+
+        # Increment page number
+        page += 1
+
+    return repos_list
 
 
 def search_and_subscribe():
